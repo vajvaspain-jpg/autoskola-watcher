@@ -1,0 +1,14 @@
+{
+  "name": "autoskola-watcher",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sleduje volne jazdy na rezervacie.autoskoladt.sk a posiela SMS ked pribudnu nove terminy",
+  "type": "module",
+  "scripts": {
+    "check": "node scrape.js",
+    "debug": "node scrape.js --debug"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}
