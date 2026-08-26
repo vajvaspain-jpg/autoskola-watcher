@@ -2,7 +2,7 @@
   "name": "autoskola-watcher",
   "version": "1.0.0",
   "private": true,
-  "description": "Sleduje volne jazdy na rezervacie.autoskoladt.sk a posiela SMS ked pribudnu nove terminy",
+  "description": "Sleduje volne jazdy na rezervacie.autoskoladt.sk a posiela spravu na Discord ked pribudnu nove terminy",
   "type": "module",
   "scripts": {
     "check": "node scrape.js",
