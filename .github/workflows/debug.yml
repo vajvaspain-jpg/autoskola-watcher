@@ -32,4 +32,5 @@ jobs:
           path: |
             debug-screenshot.png
             debug-html.txt
+            debug-log.txt
           if-no-files-found: warn
