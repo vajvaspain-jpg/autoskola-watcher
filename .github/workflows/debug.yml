@@ -30,9 +30,7 @@ jobs:
         with:
           name: debug-vystup
           path: |
-            debug-screenshot.png
-            debug-html.txt
+            debug-html-*.txt
+            debug-screenshot-*.png
             debug-log.txt
-            debug-screenshot-calendar.png
-            debug-html-calendar.txt
           if-no-files-found: warn
