@@ -33,4 +33,6 @@ jobs:
             debug-screenshot.png
             debug-html.txt
             debug-log.txt
+            debug-screenshot-calendar.png
+            debug-html-calendar.txt
           if-no-files-found: warn
