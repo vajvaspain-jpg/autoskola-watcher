@@ -1,5 +1,4 @@
 [
-  "VOZIDLO 1|14. september 2026|08:00",
   "VOZIDLO 1|14. september 2026|09:30",
   "VOZIDLO 1|14. september 2026|12:30",
   "VOZIDLO 1|15. september 2026|12:30",
@@ -13,7 +12,6 @@
   "VOZIDLO 1|22. september 2026|12:30",
   "VOZIDLO 1|23. september 2026|09:30",
   "VOZIDLO 1|23. september 2026|12:30",
-  "VOZIDLO 1|24. september 2026|06:30",
   "VOZIDLO 1|24. september 2026|09:30",
   "VOZIDLO 2|16. september 2026|08:55",
   "VOZIDLO 2|17. september 2026|07:20",
@@ -44,10 +42,8 @@
   "VOZIDLO 3|23. september 2026|12:30",
   "VOZIDLO 3|25. september 2026|12:30",
   "VOZIDLO 4|21. september 2026|10:30",
-  "VOZIDLO 4|22. september 2026|08:55",
   "VOZIDLO 4|22. september 2026|10:30",
   "VOZIDLO 4|23. september 2026|10:30",
   "VOZIDLO 4|24. september 2026|08:55",
-  "VOZIDLO 4|24. september 2026|10:30",
   "VOZIDLO 4|24. september 2026|12:30"
 ]
