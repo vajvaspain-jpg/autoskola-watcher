@@ -1,9 +1,7 @@
 [
   "VOZIDLO 1|28. september 2026|12:30",
   "VOZIDLO 1|28. |12:30",
-  "VOZIDLO 1|29. september 2026|09:30",
   "VOZIDLO 1|29. september 2026|12:30",
-  "VOZIDLO 1|29. |09:30",
   "VOZIDLO 1|29. |12:30",
   "VOZIDLO 1|30. september 2026|12:30",
   "VOZIDLO 1|30. |12:30",
@@ -17,8 +15,6 @@
   "VOZIDLO 1|8. |09:30",
   "VOZIDLO 2|1. september 2026|08:55",
   "VOZIDLO 2|1. |08:55",
-  "VOZIDLO 2|2. september 2026|10:30",
-  "VOZIDLO 2|2. |10:30",
   "VOZIDLO 2|23. september 2026|14:05",
   "VOZIDLO 2|28. september 2026|07:20",
   "VOZIDLO 2|28. september 2026|08:55",
