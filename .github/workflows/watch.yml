@@ -1,9 +1,6 @@
 name: Sleduj volne jazdy
 
-on:
-  schedule:
-    # kazdych 15 minut (GitHub moze beh mierne oneskorit pri vytazeni)
-    - cron: "*/15 * * * *"
+on:  
   workflow_dispatch: {} # umoznuje aj rucne spustenie z GitHub UI
 
 jobs:
