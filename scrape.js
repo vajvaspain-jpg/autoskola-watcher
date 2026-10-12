@@ -30,10 +30,13 @@ const STAFF = [
   { id: "3144d483-d631-477b-9f74-d44793c93963", name: "VOZIDLO 5" },
 ];
 
-// Ak pribudne menej novych terminov ako toto cislo, Discord sprava sa
-// NEPOSLE (typicky ide len o 1-2 vratene/zrusene rezervacie, nie o
-// hromadny refresh celeho rozvrhu). Uprav podla potreby.
-const MIN_NEW_SLOTS_TO_NOTIFY = 5;
+// Sprava sa posle LEN pri hromadnom refreshi: sucet novych terminov cez
+// vsetky vozidla musi dosiahnut MIN_TOTAL_NEW_SLOTS a zaroven aspon
+// MIN_VEHICLES_WITH_NEW vozidiel musi mat kazde aspon MIN_NEW_PER_VEHICLE
+// novych terminov. Vratene/zrusene rezervacie (1-5 terminov) to nesplnia.
+const MIN_TOTAL_NEW_SLOTS = 25;
+const MIN_VEHICLES_WITH_NEW = 3;
+const MIN_NEW_PER_VEHICLE = 4;
 
 const STATE_FILE = path.join(process.cwd(), "state.json");
 const DEBUG = process.argv.includes("--debug");
@@ -173,7 +176,7 @@ async function scrapeStaff(page, staff, debugLog) {
   const linkExists = await serviceLink.count().then((c) => c > 0).catch(() => false);
   if (!linkExists) {
     if (DEBUG) debugLog.push(`[${staff.name}] sluzba sa na tejto stranke vobec nenasla`);
-    return results;
+    throw new Error("sluzba sa na stranke nenasla");
   }
 
   const row = serviceLink.locator("xpath=ancestor::li[1]");
@@ -188,7 +191,7 @@ async function scrapeStaff(page, staff, debugLog) {
     );
   } catch {
     if (DEBUG) debugLog.push(`[${staff.name}] tlacidlo Rezervovat sa neobjavilo/ostalo disabled`);
-    return results;
+    throw new Error("tlacidlo Rezervovat sa neobjavilo/ostalo disabled");
   }
 
   await bookButton.click();
@@ -276,6 +279,7 @@ async function main() {
   const current = new Set();
   const currentByStaff = {}; // { "VOZIDLO 1": Set(...), ... } - na individualne porovnanie
 
+  const failed = new Set(); // vozidla, ktorych citanie sa nepodarilo
   const staffToCheck = DEBUG ? STAFF.slice(0, 1) : STAFF;
 
   for (const staff of staffToCheck) {
@@ -284,6 +288,12 @@ async function main() {
     try {
       const slots = await scrapeStaff(page, staff, debugLog);
       console.log(`  -> ${staff.name}: najdenych ${slots.length} volnych terminov.`);
+      const prevCount = [...previous].filter((k) => k.startsWith(staff.name + "|")).length;
+      if (slots.length === 0 && prevCount >= 5) {
+        // Podozrive prazdne citanie (pravdepodobne nenacitana stranka).
+        console.warn(`  ${staff.name}: 0 terminov oproti ${prevCount} predtym - povazujem za neistotne citanie.`);
+        failed.add(staff.name);
+      }
       for (const slot of slots) {
         const key = `${slot.staff}|${slot.date}|${slot.time}`;
         current.add(key);
@@ -291,6 +301,7 @@ async function main() {
       }
     } catch (err) {
       console.error(`Chyba pri ${staff.name}:`, err.message);
+      failed.add(staff.name);
       if (DEBUG) debugLog.push(`[${staff.name}] CHYBA: ${err.message}`);
     }
   }
@@ -303,37 +314,32 @@ async function main() {
 
   console.log(`Spolu najdenych ${current.size} volnych terminov na vsetkych vozidlach.`);
 
-  // Pre kazde vozidlo samostatne spocitaj, kolko NOVYCH terminov mu pribudlo
-  // (oproti predoslemu stavu). Ak aspon jedno vozidlo dostalo naraz vela
-  // novych terminov (hromadny refresh), posleme spravu. Male zmeny (1-2,
-  // typicky vratena/zrusena rezervacia) na ktoromkolvek vozidle samostatne
-  // sa ignoruju.
-  let maxNewPerStaff = 0;
-  let staffWithMostNew = "";
+  // Vozidla s neuspesnym citanim vynechame z porovnania a ich predchadzajuci
+  // stav zachovame, aby sa ich terminy pri dalsom behu nepovazovali za nove.
+  const toSave = new Set(current);
+  for (const name of failed) {
+    delete currentByStaff[name];
+    for (const k of previous) if (k.startsWith(name + "|")) toSave.add(k);
+  }
+  if (failed.size) console.log(`Neuspesne/neistotne citanie: ${[...failed].join(", ")} (stav zachovany).`);
+
+  let totalNew = 0;
+  let vehiclesWithNew = 0;
   for (const [staffName, keysSet] of Object.entries(currentByStaff)) {
-    const newForThisStaff = [...keysSet].filter((k) => !previous.has(k)).length;
-    console.log(`  ${staffName}: ${newForThisStaff} novych terminov.`);
-    if (newForThisStaff > maxNewPerStaff) {
-      maxNewPerStaff = newForThisStaff;
-      staffWithMostNew = staffName;
-    }
+    const n = [...keysSet].filter((k) => !previous.has(k)).length;
+    console.log(`  ${staffName}: ${n} novych terminov.`);
+    totalNew += n;
+    if (n >= MIN_NEW_PER_VEHICLE) vehiclesWithNew++;
   }
 
-  if (maxNewPerStaff >= MIN_NEW_SLOTS_TO_NOTIFY) {
-    console.log(
-      `${staffWithMostNew} dostalo ${maxNewPerStaff} novych terminov (>= prah ${MIN_NEW_SLOTS_TO_NOTIFY}) - posielam Discord spravu.`
-    );
-    const message = `🚗 **Pribudli nové jazdy!**\nRezervuj: ${BASE_URL}/services/${SERVICE_ID}`;
-    await sendDiscord(message);
-  } else if (maxNewPerStaff > 0) {
-    console.log(
-      `Najviac novych terminov na jednom vozidle: ${maxNewPerStaff} (pod prahom ${MIN_NEW_SLOTS_TO_NOTIFY}) - Discord sprava sa neposiela, len sa zaznamena stav.`
-    );
+  if (totalNew >= MIN_TOTAL_NEW_SLOTS && vehiclesWithNew >= MIN_VEHICLES_WITH_NEW) {
+    console.log(`Hromadny refresh: ${totalNew} novych terminov na ${vehiclesWithNew} vozidlach - posielam Discord spravu.`);
+    await sendDiscord(`🚗 **Pribudli nové jazdy!**\nRezervuj: ${BASE_URL}/services/${SERVICE_ID}`);
   } else {
-    console.log("Ziadne nove terminy.");
+    console.log(`Nových terminov spolu: ${totalNew}, vozidiel s novymi: ${vehiclesWithNew} - pod prahom, sprava sa neposiela.`);
   }
 
-  await saveState(current);
+  await saveState(toSave);
 }
 
 main().catch((err) => {
