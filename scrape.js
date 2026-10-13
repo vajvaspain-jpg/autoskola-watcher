@@ -30,13 +30,12 @@ const STAFF = [
   { id: "3144d483-d631-477b-9f74-d44793c93963", name: "VOZIDLO 5" },
 ];
 
-// Sprava sa posle LEN pri hromadnom refreshi: sucet novych terminov cez
-// vsetky vozidla musi dosiahnut MIN_TOTAL_NEW_SLOTS a zaroven aspon
-// MIN_VEHICLES_WITH_NEW vozidiel musi mat kazde aspon MIN_NEW_PER_VEHICLE
-// novych terminov. Vratene/zrusene rezervacie (1-5 terminov) to nesplnia.
-const MIN_TOTAL_NEW_SLOTS = 25;
-const MIN_VEHICLES_WITH_NEW = 3;
-const MIN_NEW_PER_VEHICLE = 4;
+// Vozidla sa aktualizuju NEZAVISLE (raz len jedno, inokedy viac naraz, v
+// lubovolnom poradi). Preto sa kazde vozidlo vyhodnocuje samostatne: ak mu
+// pribudne aspon MIN_NEW_PER_VEHICLE novych terminov (hromadny update, typicky
+// 10-14), povazuje sa za obnovene. Vratene/zrusene rezervacie (1-3 terminy)
+// to nesplnia. Ak je obnovenych viac vozidiel, vsetky sa uvedu v jednej sprave.
+const MIN_NEW_PER_VEHICLE = 7;
 
 const STATE_FILE = path.join(process.cwd(), "state.json");
 const DEBUG = process.argv.includes("--debug");
@@ -323,20 +322,23 @@ async function main() {
   }
   if (failed.size) console.log(`Neuspesne/neistotne citanie: ${[...failed].join(", ")} (stav zachovany).`);
 
-  let totalNew = 0;
-  let vehiclesWithNew = 0;
+  const refreshed = []; // cisla obnovenych vozidiel
   for (const [staffName, keysSet] of Object.entries(currentByStaff)) {
     const n = [...keysSet].filter((k) => !previous.has(k)).length;
     console.log(`  ${staffName}: ${n} novych terminov.`);
-    totalNew += n;
-    if (n >= MIN_NEW_PER_VEHICLE) vehiclesWithNew++;
+    if (n >= MIN_NEW_PER_VEHICLE) refreshed.push(Number(staffName.replace(/\D/g, "")));
   }
+  refreshed.sort((x, y) => x - y);
 
-  if (totalNew >= MIN_TOTAL_NEW_SLOTS && vehiclesWithNew >= MIN_VEHICLES_WITH_NEW) {
-    console.log(`Hromadny refresh: ${totalNew} novych terminov na ${vehiclesWithNew} vozidlach - posielam Discord spravu.`);
-    await sendDiscord(`🚗 **Pribudli nové jazdy!**\nRezervuj: ${BASE_URL}/services/${SERVICE_ID}`);
+  if (refreshed.length > 0) {
+    let who;
+    if (refreshed.length === STAFF.length) who = `všetky vozidlá (VOZIDLO 1 až ${STAFF.length})`;
+    else if (refreshed.length === 1) who = `VOZIDLO ${refreshed[0]}`;
+    else who = `VOZIDLO ${refreshed.slice(0, -1).join(", ")} a ${refreshed[refreshed.length - 1]}`;
+    console.log(`Hromadny update: ${who} - posielam Discord spravu.`);
+    await sendDiscord(`🚗 **Pribudli nové jazdy!**\nObnovené termíny: ${who}\nRezervuj: ${BASE_URL}/services/${SERVICE_ID}`);
   } else {
-    console.log(`Nových terminov spolu: ${totalNew}, vozidiel s novymi: ${vehiclesWithNew} - pod prahom, sprava sa neposiela.`);
+    console.log("Ziadne vozidlo nedostalo hromadny update - sprava sa neposiela.");
   }
 
   await saveState(toSave);
