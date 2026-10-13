@@ -1,6 +1,7 @@
 [
   "VOZIDLO 1|19. |08:00",
   "VOZIDLO 1|20. |12:30",
+  "VOZIDLO 2|14. |07:20",
   "VOZIDLO 2|14. |10:30",
   "VOZIDLO 2|19. |08:55",
   "VOZIDLO 2|20. |08:55",
@@ -17,6 +18,7 @@
   "VOZIDLO 4|22. |10:30",
   "VOZIDLO 5|19. |12:30",
   "VOZIDLO 5|19. |14:05",
+  "VOZIDLO 5|19. |15:40",
   "VOZIDLO 5|20. |10:30",
   "VOZIDLO 5|20. |12:30",
   "VOZIDLO 5|20. |14:05",
