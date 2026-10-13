@@ -81,7 +81,7 @@ async function readMonthYearLabel(page) {
     ];
     const all = Array.from(document.querySelectorAll("span, h1, h2, h3, div"));
     for (const el of all) {
-      const t = (el.textContent || "").trim().toLowerCase();
+      const t = (el.textContent || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       for (const m of monthNames) {
         if (t.startsWith(m) && /\d{4}/.test(t) && t.length < 20) {
           return el.textContent.trim();
@@ -275,6 +275,9 @@ async function main() {
   }
 
   const previous = await loadPreviousState();
+  // Migracia: stary stav mal v datume prazdny mesiac ("19. |"). Ak ho najdeme,
+  // jednorazovo len ulozime novy stav bez upozornenia.
+  const legacyState = [...previous].some((k) => /\|\d+\. \|/.test(k));
   const current = new Set();
   const currentByStaff = {}; // { "VOZIDLO 1": Set(...), ... } - na individualne porovnanie
 
@@ -329,6 +332,12 @@ async function main() {
     if (n >= MIN_NEW_PER_VEHICLE) refreshed.push(Number(staffName.replace(/\D/g, "")));
   }
   refreshed.sort((x, y) => x - y);
+
+  if (legacyState) {
+    console.log("Migracia stareho stavu - tento beh sa len zaznamena, sprava sa neposiela.");
+    await saveState(current);
+    return;
+  }
 
   if (refreshed.length > 0) {
     let who;
